@@ -1,5 +1,22 @@
 package elin.iths.se.returnservice.controller;
 
+import elin.iths.se.returnservice.models.Book;
+import elin.iths.se.returnservice.models.Receipt;
+import elin.iths.se.returnservice.models.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Calendar;
+
 @RestController
 public class Controller {
 
@@ -8,19 +25,20 @@ public class Controller {
     @Autowired
     private RestTemplate restTemplate;
 
-    public Controller (RestTemplate restTemplate) {
+    public Controller(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
     /**
      * Receives user and book id and sends them
      * to user-service and stock-service.
+     *
      * @param userId
      * @param bookId
      * @return
      */
     @GetMapping("/return/{userId}/{bookId}")
-    public Receipt returnBook(@PathVariable("userId") Long userId, @PathVariable("bookId") long bookId){
+    public Receipt returnBook(@PathVariable("userId") Long userId, @PathVariable("bookId") long bookId) {
 
         User user;
 
@@ -32,16 +50,16 @@ public class Controller {
         ResponseEntity<Book> response = restTemplate.exchange("http://storage-service/books/return/"
                 + bookId, HttpMethod.PUT, new HttpEntity<>(userId), Book.class);
         logger.info("Message sent to stock-service");
-        if(response.getStatusCode() != HttpStatus.OK){
+        if (response.getStatusCode() != HttpStatus.OK) {
             return new Receipt("", null, "", "Stock-service is having problems.");
         }
         /**
          * Inform user-service which user is returning which book.
          */
-        try{
+        try {
             user = restTemplate.getForObject("http://user-service/return-book/" + userId + "/" + bookId, User.class);
             logger.info("Message sent to user-service");
-        }catch (Exception e){
+        } catch (Exception e) {
             return new Receipt("", null, "", "User-service is having problems.");
         }
         Book book = response.getBody();
@@ -49,7 +67,7 @@ public class Controller {
         /**
          * Print receipt
          */
-        return new Receipt(book.getTitle(), book.getAuthors(),book.getReturnDate(),"Book has been returned");
+        return new Receipt(book.getTitle(), book.getAuthors(), book.getReturnDate(), "Book has been returned");
 
     }
 
@@ -61,3 +79,4 @@ public class Controller {
         return c.get(Calendar.YEAR) + "-" + (c.get(Calendar.MONTH) + 1) + "-" + Calendar.DAY_OF_MONTH;
     }
 
+}
